@@ -184,6 +184,16 @@ int main(int argc, char *argv[]) {
     for (uint32_t i = 0; i < num_graphs; i++) {
       cout << i << "\t" << fixed << ed[i] << endl;
     }
+  } else if (feature.compare("distinct-degree-distribution") == 0) {
+    unordered_map<uint32_t,vector<uint32_t>> d;
+    for (uint32_t i = 0; i < num_graphs; i++) {
+      d[i] = get_distinct_degrees(graphs[i]);
+      cout << i << "\t";
+      for (uint32_t j = 0; j < d[i].size(); j++) {
+        cout << fixed << static_cast<int>(d[i][j]) << "\t";
+      }
+      cout << endl;
+    }
   } else if (feature.compare("max-distinct-degree") == 0) {
     unordered_map<uint32_t,uint32_t> ed;
     for (uint32_t i = 0; i < num_graphs; i++) {
@@ -256,6 +266,7 @@ int main(int argc, char *argv[]) {
     cout << "\tmax-degree" << endl;
     cout << "\t90pct-degree" << endl;
     cout << "\tavg-distinct-degree" << endl;
+    cout << "\tdistinct-degree-distribution" << endl;
     cout << "\tmax-distinct-degree" << endl;
     cout << "\t90pct-distinct-degree" << endl;
     cout << "\tavg-eccentricity" << endl;
