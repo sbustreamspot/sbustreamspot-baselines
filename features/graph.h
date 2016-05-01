@@ -54,7 +54,28 @@ vector<string> get_string_chunks(string s, uint32_t len);
 // features
 uint32_t get_number_of_nodes(const graph& g);
 uint32_t get_number_of_edges(const graph& g);
+float get_density(const graph& g);
+
+vector<uint32_t> get_path_lengths(const graph& g);
 uint32_t get_diameter(const graph& g);
+float get_effective_diameter(const graph& g);
+float get_average_path_length(const graph& g);
+
+vector<uint32_t> get_degrees(const graph& g);
+uint32_t get_max_degree(const graph& g);
+float get_average_degree(const graph& g);
+float get_90pct_degree(const graph& g);
+
+vector<uint32_t> get_distinct_degrees(const graph& g);
+uint32_t get_max_distinct_degree(const graph& g);
+float get_average_distinct_degree(const graph& g);
+float get_90pct_distinct_degree(const graph& g);
+
+vector<uint32_t> get_eccentricities(const graph& g);
+uint32_t get_max_eccentricity(const graph& g);
+uint32_t get_radius(const graph& g);
+float get_average_eccentricity(const graph& g);
+float get_90pct_eccentricity(const graph& g);
 
 }
 

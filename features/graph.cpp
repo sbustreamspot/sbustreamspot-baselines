@@ -481,8 +481,124 @@ uint32_t get_number_of_edges(const graph& g) {
   return nedges;
 }
 
+float get_density(const graph& g) {
+  float nedges = get_number_of_edges(g);
+  float nverts = get_number_of_nodes(g);
+  return nedges / (nverts * (nverts - 1));
+}
+
 uint32_t get_diameter(const graph& g) {
-  int diameter = -1;
+  vector<uint32_t> dists = get_path_lengths(g);
+  return *max_element(dists.begin(), dists.end());
+}
+
+float get_effective_diameter(const graph& g) {
+  vector<uint32_t> dists = get_path_lengths(g);
+  sort(dists.begin(), dists.end());
+  int idx = floorf((dists.size() - 1) * 0.9);
+  return dists[idx];
+}
+
+float get_average_path_length(const graph& g) {
+  vector<uint32_t> dists = get_path_lengths(g);
+  float sum = 0;
+  for (auto d : dists)
+    sum += d;
+  float avg = sum / dists.size();
+  return avg;
+}
+
+uint32_t get_max_eccentricity(const graph& g) {
+  vector<uint32_t> dists = get_eccentricities(g);
+  return *max_element(dists.begin(), dists.end());
+}
+
+uint32_t get_radius(const graph& g) {
+  vector<uint32_t> dists = get_eccentricities(g);
+  return *min_element(dists.begin(), dists.end());
+}
+
+float get_90pct_eccentricity(const graph& g) {
+  vector<uint32_t> dists = get_eccentricities(g);
+  sort(dists.begin(), dists.end());
+  int idx = floorf((dists.size() - 1) * 0.9);
+  return dists[idx];
+}
+
+float get_average_eccentricity(const graph& g) {
+  vector<uint32_t> dists = get_eccentricities(g);
+  float sum = 0;
+  for (auto d : dists)
+    sum += d;
+  float avg = sum / dists.size();
+  return avg;
+}
+
+uint32_t get_max_degree(const graph& g) {
+  vector<uint32_t> degrees = get_degrees(g);
+  return *max_element(degrees.begin(), degrees.end());
+}
+
+float get_90pct_degree(const graph& g) {
+  vector<uint32_t> degrees = get_degrees(g);
+  sort(degrees.begin(), degrees.end());
+  int idx = floorf((degrees.size() - 1) * 0.9);
+  return degrees[idx];
+}
+
+float get_average_degree(const graph& g) {
+  vector<uint32_t> degrees = get_degrees(g);
+  float sum = 0;
+  for (auto d : degrees)
+    sum += d;
+  float avg = sum / degrees.size();
+  return avg;
+}
+
+uint32_t get_max_distinct_degree(const graph& g) {
+  vector<uint32_t> degrees = get_distinct_degrees(g);
+  return *max_element(degrees.begin(), degrees.end());
+}
+
+float get_90pct_distinct_degree(const graph& g) {
+  vector<uint32_t> degrees = get_distinct_degrees(g);
+  sort(degrees.begin(), degrees.end());
+  int idx = floorf((degrees.size() - 1) * 0.9);
+  return degrees[idx];
+}
+
+float get_average_distinct_degree(const graph& g) {
+  vector<uint32_t> degrees = get_distinct_degrees(g);
+  float sum = 0;
+  for (auto d : degrees)
+    sum += d;
+  float avg = sum / degrees.size();
+  return avg;
+}
+
+vector<uint32_t> get_degrees(const graph& g) {
+  vector<uint32_t> degrees;
+  for (auto& kv : g) {
+    //cout << "degree of " << kv.first.first << " is " << kv.second.size() << endl;
+    degrees.push_back(kv.second.size());
+  }
+  return degrees;
+}
+
+vector<uint32_t> get_distinct_degrees(const graph& g) {
+  vector<uint32_t> degrees;
+  for (auto& kv : g) {
+    unordered_set<uint32_t> distinct_neighbors;
+    for (auto& e : kv.second) {
+      distinct_neighbors.insert(get<0>(e));
+    }
+    degrees.push_back(distinct_neighbors.size());
+  }
+  return degrees;
+}
+
+vector<uint32_t> get_path_lengths(const graph& g) {
+  vector<uint32_t> dists;
   for (auto& kv : g) {
     queue<tuple<uint32_t,char,char>> q; // (nodeid, nodetype, edgetype)
     unordered_map<uint32_t,uint32_t> d; // distances
@@ -514,15 +630,63 @@ uint32_t get_diameter(const graph& g) {
       }
     }
 
-    for (auto& kv : d) {
-      //cout << "\td[" << kv.first << "] = " << kv.second << endl;
-      if (static_cast<int>(kv.second) > diameter) {
-        diameter = kv.second;
+    for (auto& kv2 : d) {
+      if (kv2.first == kv.first.first) { // source node
+        continue;
       }
+      //cout << "dist from " << kv.first.first << " to " << kv2.first << " = " << kv2.second << endl;
+      dists.push_back(kv2.second);
     }
   }
-  
-  return diameter;
+
+  return dists;
+}
+
+vector<uint32_t> get_eccentricities(const graph& g) {
+  vector<uint32_t> dists;
+  for (auto& kv : g) {
+    queue<tuple<uint32_t,char,char>> q; // (nodeid, nodetype, edgetype)
+    unordered_map<uint32_t,uint32_t> d; // distances
+
+    q.push(make_tuple(kv.first.first, kv.first.second, ' '));
+    d[kv.first.first] = 0;
+
+    while (!q.empty()) {
+      auto node = q.front();
+      auto& uid = get<0>(node);
+      auto& utype = get<1>(node);
+      q.pop();
+
+      if (g.find(make_pair(uid, utype)) == g.end()) { // sink vertex
+        continue; // no outgoing edges
+      }
+
+      for (auto& e : g.at(make_pair(uid, utype))) {
+        auto& vid = get<0>(e);
+        if (d.find(vid) != d.end()) { // visited before
+          if (d[uid] + 1 < d[vid]) { // shorter path found
+            d[vid] = d[uid] + 1;
+            q.push(e);
+          }
+        } else { // not visited before
+          d[vid] = d[uid] + 1;
+          q.push(e);
+        }
+      }
+    }
+
+    vector<uint32_t> e;
+    for (auto& kv2 : d) {
+      if (kv2.first == kv.first.first) { // source node
+        continue;
+      }
+      e.push_back(kv2.second);
+    }
+
+    dists.push_back(*max_element(e.begin(), e.end()));
+  }
+
+  return dists;
 }
 
 } // namespace
