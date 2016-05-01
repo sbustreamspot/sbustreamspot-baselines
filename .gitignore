@@ -5,7 +5,10 @@ streamspot
 *.dat
 *.pyc
 *.pdf
+*.txt
 results/
+env/
+.DS_Store
 
 # Compiled Object files
 *.slo
