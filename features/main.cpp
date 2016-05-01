@@ -124,6 +124,16 @@ int main(int argc, char *argv[]) {
     for (uint32_t i = 0; i < num_graphs; i++) {
       cout << i << "\t" << fixed << avg[i] << endl;
     }
+  } else if (feature.compare("path-length-distribution") == 0) {
+    unordered_map<uint32_t,vector<uint32_t>> d;
+    for (uint32_t i = 0; i < num_graphs; i++) {
+      d[i] = get_path_lengths(graphs[i]);
+      cout << i << "\t";
+      for (uint32_t j = 0; j < d[i].size(); j++) {
+        cout << fixed << static_cast<int>(d[i][j]) << "\t";
+      }
+      cout << endl;
+    }
   } else if (feature.compare("effective-diameter") == 0) {
     unordered_map<uint32_t,float> ed;
     for (uint32_t i = 0; i < num_graphs; i++) {
@@ -139,6 +149,16 @@ int main(int argc, char *argv[]) {
     }
     for (uint32_t i = 0; i < num_graphs; i++) {
       cout << i << "\t" << fixed << ed[i] << endl;
+    }
+  } else if (feature.compare("degree-distribution") == 0) {
+    unordered_map<uint32_t,vector<uint32_t>> d;
+    for (uint32_t i = 0; i < num_graphs; i++) {
+      d[i] = get_degrees(graphs[i]);
+      cout << i << "\t";
+      for (uint32_t j = 0; j < d[i].size(); j++) {
+        cout << fixed << static_cast<int>(d[i][j]) << "\t";
+      }
+      cout << endl;
     }
   } else if (feature.compare("max-degree") == 0) {
     unordered_map<uint32_t,uint32_t> ed;
@@ -188,6 +208,16 @@ int main(int argc, char *argv[]) {
     for (uint32_t i = 0; i < num_graphs; i++) {
       cout << i << "\t" << fixed << ed[i] << endl;
     }
+  } else if (feature.compare("eccentricity-distribution") == 0) {
+    unordered_map<uint32_t,vector<uint32_t>> d;
+    for (uint32_t i = 0; i < num_graphs; i++) {
+      d[i] = get_eccentricities(graphs[i]);
+      cout << i << "\t";
+      for (uint32_t j = 0; j < d[i].size(); j++) {
+        cout << fixed << static_cast<int>(d[i][j]) << "\t";
+      }
+      cout << endl;
+    }
   } else if (feature.compare("max-eccentricity") == 0) {
     unordered_map<uint32_t,uint32_t> ed;
     for (uint32_t i = 0; i < num_graphs; i++) {
@@ -219,14 +249,17 @@ int main(int argc, char *argv[]) {
     cout << "\tdensity" << endl;
     cout << "\tdiameter" << endl;
     cout << "\tavg-path-length" << endl;
+    cout << "\tpath-length-distribution" << endl;
     cout << "\teffective-diameter" << endl;
     cout << "\tavg-degree" << endl;
+    cout << "\tdegree-distribution" << endl;
     cout << "\tmax-degree" << endl;
     cout << "\t90pct-degree" << endl;
     cout << "\tavg-distinct-degree" << endl;
     cout << "\tmax-distinct-degree" << endl;
     cout << "\t90pct-distinct-degree" << endl;
     cout << "\tavg-eccentricity" << endl;
+    cout << "\teccentricity-distribution" << endl;
     cout << "\tmax-eccentricity" << endl;
     cout << "\tradius" << endl;
     cout << "\t90pct-eccentricity" << endl;
