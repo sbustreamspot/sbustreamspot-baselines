@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Copyright 2016 Emaad Ahmed Manzoor
+# License: Apache License, Version 2.0
+# https://github.com/sbustreamspot/sbustreamspot-baselines
+
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt

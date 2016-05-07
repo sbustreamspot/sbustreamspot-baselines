@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-from constants import *
+# Copyright 2016 Emaad Ahmed Manzoor
+# License: Apache License, Version 2.0
+# https://github.com/sbustreamspot/sbustreamspot-baselines
+
+from params import *
 from graph_tool.all import *
 
 def construct_graphs(edge_file):
