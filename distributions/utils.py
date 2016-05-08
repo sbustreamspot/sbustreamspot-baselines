@@ -33,3 +33,42 @@ def split_train_test(benign_scenarios, attack_scenarios, train_frac):
                               100*attack_scenario + NUM_SCENARIO_GRAPHS))
 
     return train_ids, test_ids
+
+def pr_curve(labels, scores):
+    labels_and_scores = zip(labels, scores)
+    labels_and_scores = sorted(labels_and_scores, key=lambda x: x[1],
+                               reverse=True)
+    prev_r = 0.0
+    ap = 0.0
+    anomaly_idx = 0.0
+    precisions = []
+    recalls = []
+    for threshold_idx in range(len(labels_and_scores)-1):
+        label = labels_and_scores[threshold_idx][0]
+        score = labels_and_scores[threshold_idx][1]
+        if label == 0: # not an anomaly
+            continue
+        anomaly_idx += 1.0
+
+        pred_true = [t[0] for t in labels_and_scores[:threshold_idx+1]]
+        pred_false = [t[0] for t in labels_and_scores[threshold_idx+1:]]
+
+        tp = sum([1 for i in pred_true if i == 1])
+        fp = sum([1 for i in pred_true if i == 0])
+        tn = sum([1 for i in pred_false if i == 0])
+        fn = sum([1 for i in pred_false if i == 1])
+
+        p = float(tp) / (tp + fp)
+        r = float(tp) / (tp + fn)
+        tpr = float(tp) / (tp + fn)
+        fpr = float(fp) / (fp + tn)
+
+        assert r == anomaly_idx/100.0
+
+        ap += p * (r - prev_r)
+        prev_r = r
+
+        precisions.append(p)
+        recalls.append(r)
+
+    return precisions, recalls, ap

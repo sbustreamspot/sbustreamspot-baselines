@@ -9,10 +9,11 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from params import *
 from distribution import *
-from utils import split_train_test
+from utils import split_train_test, pr_curve
 from sklearn.neighbors import KernelDensity
 from sklearn.grid_search import GridSearchCV
 from sklearn.cross_validation import LeaveOneOut
+from sklearn.metrics import precision_recall_curve, average_precision_score
 import sys
 import random
 
@@ -60,16 +61,19 @@ with open(feat_file, 'r') as f:
             sys.exit(-1)
 
 # compute kde and bandwidth using likelihood CV on training data
+train_values = np.array(sorted([fval
+                                for gid, fval
+                                in train_feature_values])).reshape(-1,1)
 if bandwidth < 0:
-    train_values = np.array(sorted([fval
-                                    for gid, fval
-                                    in train_feature_values])).reshape(-1,1)
     params = {'bandwidth': np.arange(1, 10, 0.05)}
     print params
     grid = GridSearchCV(KernelDensity(), params, cv=LeaveOneOut(len(train_values)),
                         n_jobs=4, verbose=1)
     grid.fit(train_values)
+    kde = grid.best_estimator_
     print "Best bandwidth:", grid.best_params_, grid.best_score_
+else:
+    kde = KernelDensity(bandwidth=bandwidth).fit(train_values)
 
 # compute histogram
 minval = min(train_values)
@@ -86,26 +90,90 @@ colours = ["#348ABD", "#A60628"]
 plt.figure(figsize=(16,4))
 plt.hold(True)
 plt.bar(left=bins[:-1], width=binwidth, height=hist, color=colours[0],
-        label='Normalized Histogram', alpha=0.6, edgecolor=colours[0], lw="3")
+        label='Normalized histogram', alpha=0.6, edgecolor=colours[0], lw="3")
 
 # plot kde
 kdex = np.arange(bins[0]-binwidth, bins[-1]+binwidth, step=binwidth/100.0)
-kde = grid.best_estimator_
 pdf = np.exp(kde.score_samples(kdex.reshape(-1,1)))
-plt.plot(kdex, pdf, lw="2", alpha=0.6, color='black', label='PDF')
+plt.plot(kdex, pdf, lw="2", alpha=0.6, color='black', label='Estimated PDF')
 
 # plot rug data points
 ymin, ymax = plt.ylim()
 ycenter = (ymax - ymin) * 0.8
 plt.plot(train_values, [ycenter]*len(train_values), '|', color='k',
-         label='Feature Values')
+         label='Training feature values')
+
+test_values = np.array([feat_val
+                        for gid, feat_val in test_feature_values]).reshape(-1,1)
+test_malicious_values = [feat_val for gid, feat_val in test_feature_values
+                         if gid/100 in MALICIOUS_SCENARIOS]
+test_benign_values = [feat_val for gid, feat_val in test_feature_values
+                         if gid/100 in BENIGN_SCENARIOS]
+plt.plot(test_benign_values, [ycenter]*len(test_benign_values), '|',
+         color=colours[0], label='Test feature values (benign)')
+plt.plot(test_malicious_values, [ycenter]*len(test_malicious_values), '|',
+         color='red', label='Test feature values (malicious)')
 
 plt.legend(loc='best')
 plt.xlim(bins[0]-binwidth, bins[-1]+binwidth)
 plt.xticks(bins, bins.flatten(), rotation=45)
 plt.savefig('kde-' + feat_name + '.pdf', bbox_inches='tight')
+plt.clf()
+plt.close()
+# finished kde plot
 
-# for each training point, anomaly score = 1 - p(x) where p(x) is from KDE 
-# compute anomaly scores
+# scores for all points
+all_feature_values = train_feature_values + test_feature_values
+all_values = np.array([feat_value
+                       for gid, feat_value in all_feature_values]).reshape(-1,1)
+y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
+          for gid, feat_value in all_feature_values]
+anomaly_scores = [-p for p in np.exp(kde.score_samples(all_values)).flatten()]
 
+"""
+# visualise anomaly scores
+for i in range(len(test_feature_values)):
+    gid, feat_value = test_feature_values[i]
+    p = inv_anomaly_scores[i]
+    if gid/100 in BENIGN_SCENARIOS:
+        color = colours[0]
+    else:
+        color = colours[1]
+    plt.plot((feat_value, feat_value), (ycenter, ycenter + p),
+              '-', color=color)
+"""
+
+"""
 # plot PR curve
+precision, recall, _ = precision_recall_curve(y_true=y_true,
+                                              probas_pred=anomaly_scores)
+ap = average_precision_score(y_true, anomaly_scores)
+print precision
+print recall
+print ap
+
+plt.figure()
+plt.plot(recall, precision, label='AUC={0:0.2f}'.format(ap))
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.ylim([0.0, 1.05])
+plt.xlim([0.0, 1.0])
+plt.legend()
+plt.savefig('pr-' + feat_name + '.pdf', bbox_inches='tight')
+plt.clf()
+plt.close()
+"""
+
+# plot my own PR curve
+precision, recall, ap = pr_curve(y_true, anomaly_scores)
+print ap
+plt.figure()
+plt.plot(recall, precision, label='AUC={0:0.3f}'.format(ap))
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.ylim([0.0, 1.05])
+plt.xlim([0.0, 1.0])
+plt.legend()
+plt.savefig('pr-' + feat_name + '.pdf', bbox_inches='tight')
+plt.clf()
+plt.close()
