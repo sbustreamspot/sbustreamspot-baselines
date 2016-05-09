@@ -56,12 +56,12 @@ int main(int argc, char *argv[]) {
   cout << ")" << endl;
 
   unordered_set<uint32_t> train_gids;
-  for (uint32_t i = 0; i < 600; i++) {
+  for (uint32_t i = 0; i < NUM_GRAPHS; i++) {
     train_gids.insert(i);
   }
 
   unordered_set<uint32_t> scenarios;
-  for (uint32_t i = 0; i < 6; i++) {
+  for (uint32_t i = 0; i < NUM_SCENARIOS; i++) {
     scenarios.insert(i);
   }
 

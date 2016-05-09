@@ -18,6 +18,8 @@
 #define L                 1000       // must be = B * R
 #define SEED              23
 #define CLUSTER_UPDATE_INTERVAL   10000
+#define NUM_GRAPHS        700
+#define NUM_SCENARIOS     7
 
 #define PI                3.1415926535897
 
