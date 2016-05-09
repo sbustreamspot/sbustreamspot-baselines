@@ -11,6 +11,6 @@ python graph_distribution.py metrics/max-degree.txt "max-degree" 10000
 python graph_distribution.py metrics/avg-degree.txt "avg-degree" 150
 python graph_distribution.py metrics/max-distinct-degree.txt "max-distinct-degree" 25
 python graph_distribution.py metrics/avg-distinct-degree.txt "avg-distinct-degree" 5
-python feature_distribution.py path-length-distribution.txt "path-length-distribution" 1
-python feature_distribution.py degree-distribution.txt "degree-distribution" 10000
-python feature_distribution.py distinct-degree-distribution.txt "distinct-degree-distribution" 100
+#python feature_distribution.py path-length-distribution.txt "path-length-distribution" 1
+#python feature_distribution.py degree-distribution.txt "degree-distribution" 10000
+#python feature_distribution.py distinct-degree-distribution.txt "distinct-degree-distribution" 100
