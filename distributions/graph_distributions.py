@@ -11,9 +11,14 @@ import sys
 feat_file = sys.argv[1]
 feat_name = sys.argv[2]
 binwidth = float(sys.argv[3])
+malicious_scenario = int(sys.argv[4]) # 0 or 1
+
+print "Computing", feat_name
 
 benign_values = []
-malicious_values = []
+malicious_values = {}
+for scenario in MALICIOUS_SCENARIOS:
+    malicious_values[scenario] = []
 with open(feat_file, 'r') as f:
     # skip 3 header lines
     next(f)
@@ -31,10 +36,10 @@ with open(feat_file, 'r') as f:
         if scenario in BENIGN_SCENARIOS:
             benign_values.append(feat_value)
         elif scenario in MALICIOUS_SCENARIOS:
-            malicious_values.append(feat_value)
+            malicious_values[scenario].append(feat_value)
         else:
             print "ERROR:", gid
             sys.exit(-1)
 
 plot_distribution(benign_values, malicious_values, feat_name=feat_name,
-                  binwidth=binwidth)
+                  binwidth=binwidth, malicious_scenario=malicious_scenario)
