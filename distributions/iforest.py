@@ -85,33 +85,68 @@ iforest.fit(Xtrain)
 # anomaly scores
 y_pred_train = iforest.predict(Xtrain)
 y_pred_test = iforest.predict(Xtest)
+train_feature_values = [(gid, val)
+                        for gid, val in zip(idx_train, list(y_pred_train))]
+test_feature_values = [(gid, val)
+                        for gid, val in zip(idx_test, list(y_pred_test))]
+for i, scenario in enumerate(MALICIOUS_SCENARIOS):
+    all_feature_values = train_feature_values + \
+                         [(gid, feat_value)
+                          for gid, feat_value in test_feature_values
+                          if gid/100 in BENIGN_SCENARIOS or
+                             gid/100 == scenario]
+    all_values = np.array([feat_value
+                           for gid, feat_value in all_feature_values]).reshape(-1,1)
+    y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
+              for gid, feat_value in all_feature_values]
+    
+    benign_pred = [feat_value for gid, feat_value in all_feature_values
+                   if gid/100 in BENIGN_SCENARIOS]
+    malicious_pred = [feat_value for gid, feat_value in all_feature_values
+                      if gid/100 in MALICIOUS_SCENARIOS]
 
-y_pred_all = np.concatenate((y_pred_train, y_pred_test))
-idx_all = idx_train + idx_test
-y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
-          for gid in idx_all]
-benign_pred = [y_pred_all[i] for i in range(len(y_pred_all)) if y_true[i] == 0]
-malicious_pred = [y_pred_all[i] for i in range(len(y_pred_all)) if y_true[i] == 1]
+    # compute histograms
+    binwidth = 0.01
+    minval = min(all_values)
+    maxval = max(all_values)
+    nbins = (maxval - minval)/binwidth;
+    bins = np.arange(minval, maxval+binwidth+binwidth, binwidth)
+    a = np.arange(len(bins))
 
-# compute histograms
-binwidth = 0.01
-minval = min(y_pred_all)
-maxval = max(y_pred_all)
-nbins = (maxval - minval)/binwidth;
-bins = np.arange(minval, maxval+binwidth+binwidth, binwidth)
-a = np.arange(len(bins))
+    benign_hist, _ = np.histogram(benign_pred, bins=bins)
+    malicious_hist, _ = np.histogram(malicious_pred, bins=bins)
 
-benign_hist, _ = np.histogram(benign_pred, bins=bins)
-malicious_hist, _ = np.histogram(malicious_pred, bins=bins)
+    # plot histogram
+    colours = ["#348ABD", "#A60628", "#f04b09"]
+    plt.figure(figsize=(16,4))
+    plt.hold(True)
+    plt.bar(left=bins[:-1], width=binwidth, height=benign_hist, color=colours[0],
+            label='Benign', alpha=0.6, edgecolor=colours[0], lw="3")
+    plt.bar(left=bins[:-1], width=binwidth, height=malicious_hist,
+            color=colours[i+1],
+            label='Malicious (Scenario ' + str(scenario) + ')',
+            alpha=0.6, edgecolor=colours[i+1], lw="3")
+    plt.legend(loc='best')
+    plt.xlim(bins[0]-binwidth, bins[-1]+binwidth)
+    plt.xticks(bins, ["{:0.03f}".format(x) for x in bins.flatten()], rotation=45)
+    plt.savefig('iforest-scores' + str(scenario) + '.pdf', bbox_inches='tight')
+    plt.clf()
+    plt.close()
 
-# plot histogram
-colours = ["#348ABD", "#A60628"]
-plt.figure(figsize=(16,4))
-plt.hold(True)
-plt.bar(left=bins[:-1], width=binwidth, height=benign_hist, color=colours[0],
-        label='Benign', alpha=0.6, edgecolor=colours[0], lw="3")
-plt.bar(left=bins[:-1], width=binwidth, height=malicious_hist, color=colours[1],
-        label='Malicious', alpha=0.6, edgecolor=colours[1], lw="3")
+    # plot my own PR curve
+    precision, recall, ap = pr_curve(y_true, all_values)
+    print 'Scenario:', scenario, ap
+    plt.figure()
+    plt.plot(recall, precision, label='AUC (Scenario ' + str(scenario) +\
+                                      ')={0:0.3f}'.format(ap), color=colours[i+1])
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.legend()
+    plt.savefig('iforest-pr' + str(scenario) + '.pdf', bbox_inches='tight')
+    plt.clf()
+    plt.close()
 
 """
 # plot rug data points
@@ -131,13 +166,6 @@ plt.plot(test_benign_values, [ycenter]*len(test_benign_values), '|',
 plt.plot(test_malicious_values, [ycenter]*len(test_malicious_values), '|',
          color='red', label='Test feature values (malicious)')
 """
-
-plt.legend(loc='best')
-plt.xlim(bins[0]-binwidth, bins[-1]+binwidth)
-plt.xticks(bins, ["{:0.03f}".format(x) for x in bins.flatten()], rotation=45)
-plt.savefig('iforest-scores.pdf', bbox_inches='tight')
-plt.clf()
-plt.close()
 
 """
 # plot PR curve
@@ -159,17 +187,3 @@ plt.savefig('pr-' + feat_name + '.pdf', bbox_inches='tight')
 plt.clf()
 plt.close()
 """
-
-# plot my own PR curve
-precision, recall, ap = pr_curve(y_true, y_pred_all)
-print ap
-plt.figure()
-plt.plot(recall, precision, label='AUC={0:0.3f}'.format(ap))
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.ylim([0.0, 1.05])
-plt.xlim([0.0, 1.0])
-plt.legend()
-plt.savefig('iforest-pr.pdf', bbox_inches='tight')
-plt.clf()
-plt.close()
