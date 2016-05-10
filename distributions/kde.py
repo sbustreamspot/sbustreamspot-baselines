@@ -29,6 +29,8 @@ bandwidth = -1.0
 if len(sys.argv) > 5:
     bandwidth = float(sys.argv[5])
 
+print 'Computing KDE for', feat_name
+
 # train-test split
 train_gids, test_gids = split_train_test(BENIGN_SCENARIOS, MALICIOUS_SCENARIOS,
                                          train_frac)
@@ -86,7 +88,7 @@ hist, _ = np.histogram(train_values, bins=bins, density=True)
 #print bins
 
 # plot histogram
-colours = ["#348ABD", "#A60628"]
+colours = ["#348ABD", "#A60628", "#f04b09"]
 plt.figure(figsize=(16,4))
 plt.hold(True)
 plt.bar(left=bins[:-1], width=binwidth, height=hist, color=colours[0],
@@ -105,14 +107,20 @@ plt.plot(train_values, [ycenter]*len(train_values), '|', color='k',
 
 test_values = np.array([feat_val
                         for gid, feat_val in test_feature_values]).reshape(-1,1)
-test_malicious_values = [feat_val for gid, feat_val in test_feature_values
-                         if gid/100 in MALICIOUS_SCENARIOS]
+test_malicious_values = {}
+for scenario in MALICIOUS_SCENARIOS:
+    test_malicious_values[scenario] = [feat_val
+                                       for gid, feat_val in test_feature_values
+                                       if gid/100 == scenario]
 test_benign_values = [feat_val for gid, feat_val in test_feature_values
                          if gid/100 in BENIGN_SCENARIOS]
 plt.plot(test_benign_values, [ycenter]*len(test_benign_values), '|',
          color=colours[0], label='Test feature values (benign)')
-plt.plot(test_malicious_values, [ycenter]*len(test_malicious_values), '|',
-         color='red', label='Test feature values (malicious)')
+for i, scenario in enumerate(MALICIOUS_SCENARIOS):
+    values = test_malicious_values[scenario]
+    plt.plot(values, [ycenter]*len(values), '|',
+             color=colours[i+1],
+             label='Test feature values (malicious ' + str(scenario) + ')')
 
 plt.legend(loc='best')
 plt.xlim(bins[0]-binwidth, bins[-1]+binwidth)
@@ -123,12 +131,32 @@ plt.close()
 # finished kde plot
 
 # scores for all points
-all_feature_values = train_feature_values + test_feature_values
-all_values = np.array([feat_value
-                       for gid, feat_value in all_feature_values]).reshape(-1,1)
-y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
-          for gid, feat_value in all_feature_values]
-anomaly_scores = [-p for p in np.exp(kde.score_samples(all_values)).flatten()]
+for i, scenario in enumerate(MALICIOUS_SCENARIOS):
+    all_feature_values = train_feature_values + \
+                         [(gid, feat_value)
+                          for gid, feat_value in test_feature_values
+                          if gid/100 in BENIGN_SCENARIOS or
+                             gid/100 == scenario]
+    all_values = np.array([feat_value
+                           for gid, feat_value in all_feature_values]).reshape(-1,1)
+    y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
+              for gid, feat_value in all_feature_values]
+    anomaly_scores = [-p for p in np.exp(kde.score_samples(all_values)).flatten()]
+    
+    # plot my own PR curve
+    precision, recall, ap = pr_curve(y_true, anomaly_scores)
+    print 'Scenario: ', scenario, ap
+    plt.figure()
+    plt.plot(recall, precision, label='AUC (Scenario ' + str(scenario) + \
+                                      ')={0:0.3f}'.format(ap), color=colours[i+1])
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.legend()
+    plt.savefig('pr-' + feat_name + str(scenario) + '.pdf', bbox_inches='tight')
+    plt.clf()
+    plt.close()
 
 """
 # visualise anomaly scores
@@ -164,16 +192,3 @@ plt.clf()
 plt.close()
 """
 
-# plot my own PR curve
-precision, recall, ap = pr_curve(y_true, anomaly_scores)
-print ap
-plt.figure()
-plt.plot(recall, precision, label='AUC={0:0.3f}'.format(ap))
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.ylim([0.0, 1.05])
-plt.xlim([0.0, 1.0])
-plt.legend()
-plt.savefig('pr-' + feat_name + '.pdf', bbox_inches='tight')
-plt.clf()
-plt.close()

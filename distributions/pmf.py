@@ -111,18 +111,38 @@ plt.close()
 """
 
 # scores for all points
-all_feature_values = train_feature_values + test_feature_values
-all_values = np.array([feat_value
+for i, scenario in enumerate(MALICIOUS_SCENARIOS):
+    all_feature_values = train_feature_values + \
+                         [(gid, feat_value)
+                          for gid, feat_value in test_feature_values
+                          if gid/100 in BENIGN_SCENARIOS or
+                             gid/100 == scenario]
+    all_values = np.array([feat_value
                        for gid, feat_value in all_feature_values]).reshape(-1,1)
-y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
-          for gid, feat_value in all_feature_values]
-anomaly_scores = []
-for value in all_values.flatten():
-    if value in pmf:
-        anomaly_scores.append(-pmf[value])
-    else:
-        prob = (0.0 + 1.0) / (total + nevents)
-        anomaly_scores.append(-prob)
+    y_true = [1 if gid/100 in MALICIOUS_SCENARIOS else 0
+              for gid, feat_value in all_feature_values]
+    anomaly_scores = []
+    for value in all_values.flatten():
+        if value in pmf:
+            anomaly_scores.append(-pmf[value])
+        else:
+            prob = (0.0 + 1.0) / (total + nevents)
+            anomaly_scores.append(-prob)
+
+    # plot my own PR curve
+    precision, recall, ap = pr_curve(y_true, anomaly_scores)
+    print 'Scenario:', scenario, ap
+    plt.figure()
+    plt.plot(recall, precision, label='AUC (Scenario ' + str(scenario) + \
+                                      ')={0:0.3f}'.format(ap), color=colours[i+1])
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.legend()
+    plt.savefig('pr-' + feat_name + str(scenario) + '.pdf', bbox_inches='tight')
+    plt.clf()
+    plt.close()
 
 #print all_values.flatten()[300:400]
 #print anomaly_scores[300:400]
@@ -160,17 +180,3 @@ plt.savefig('pr-' + feat_name + '.pdf', bbox_inches='tight')
 plt.clf()
 plt.close()
 """
-
-# plot my own PR curve
-precision, recall, ap = pr_curve(y_true, anomaly_scores)
-print ap
-plt.figure()
-plt.plot(recall, precision, label='AUC={0:0.3f}'.format(ap))
-plt.xlabel('Recall')
-plt.ylabel('Precision')
-plt.ylim([0.0, 1.05])
-plt.xlim([0.0, 1.0])
-plt.legend()
-plt.savefig('pr-' + feat_name + '.pdf', bbox_inches='tight')
-plt.clf()
-plt.close()
